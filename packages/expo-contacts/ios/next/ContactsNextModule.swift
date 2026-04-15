@@ -385,21 +385,6 @@ public class ContactsNextModule: Module {
         }
       }
 
-      StaticAsyncFunction("getPermissionsAsync") { (promise: Promise) in
-        appContext?.permissions?.getPermissionUsingRequesterClass(
-          ContactsPermissionRequester.self,
-          resolve: promise.legacyResolver,
-          reject: promise.legacyRejecter
-        )
-      }
-
-      StaticAsyncFunction("requestPermissionsAsync") { (promise: Promise) in
-        appContext?.permissions?.askForPermission(
-          usingRequesterClass: ContactsPermissionRequester.self,
-          resolve: promise.legacyResolver,
-          reject: promise.legacyRejecter
-        )
-      }
     }
 
     // swiftlint:disable:next closure_body_length
@@ -510,6 +495,22 @@ public class ContactsNextModule: Module {
           contactFactory: contactFactory
         )
       }
+    }
+
+    AsyncFunction("getPermissionsAsync") { (promise: Promise) in
+      appContext?.permissions?.getPermissionUsingRequesterClass(
+        ContactsPermissionRequester.self,
+        resolve: promise.legacyResolver,
+        reject: promise.legacyRejecter
+      )
+    }
+
+    AsyncFunction("requestPermissionsAsync") { (promise: Promise) in
+      appContext?.permissions?.askForPermission(
+        usingRequesterClass: ContactsPermissionRequester.self,
+        resolve: promise.legacyResolver,
+        reject: promise.legacyRejecter
+      )
     }
   }
 }

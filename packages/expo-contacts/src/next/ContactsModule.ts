@@ -3,12 +3,15 @@ import { NativeModule, Platform, requireNativeModule } from 'expo-modules-core';
 import { Contact as ContactType } from './types/Contact';
 import { Container as ContainerType, FallbackContainer } from './types/Container';
 import { Group as GroupType, FallbackGroup } from './types/Group';
+import { ContactsPermissionResponse } from './types/Permissions';
 
 declare class ExpoContactsModule extends NativeModule {
   ContactNext?: typeof ContactType;
   Contact: typeof ContactType;
   Group: typeof GroupType;
   Container: typeof ContainerType;
+  getPermissionsAsync(): Promise<ContactsPermissionResponse>;
+  requestPermissionsAsync(): Promise<ContactsPermissionResponse>;
 }
 
 const expoContactsModule = requireNativeModule<ExpoContactsModule>('ExpoContactsNext');
@@ -51,3 +54,19 @@ export class Group extends (expoContactsModule.Group || FallbackGroup) {}
  * @platform ios
  */
 export class Container extends (expoContactsModule.Container || FallbackContainer) {}
+
+/**
+ * Checks user's permissions for accessing contacts data.
+ * @returns A promise that resolves to a [`ContactsPermissionResponse`](#contactspermissionresponse) object.
+ */
+export async function getPermissionsAsync() {
+  return expoContactsModule.getPermissionsAsync();
+}
+
+/**
+ * Asks the user to grant permissions for accessing contacts data.
+ * @returns A promise that resolves to a [`ContactsPermissionResponse`](#contactspermissionresponse) object.
+ */
+export async function requestPermissionsAsync() {
+  return expoContactsModule.requestPermissionsAsync();
+}

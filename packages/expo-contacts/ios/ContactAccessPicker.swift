@@ -2,7 +2,6 @@
 
 import SwiftUI
 import ContactsUI
-import ExpoModulesCore
 
 /**
  A plain view that presents contact access picker on mount.
@@ -28,17 +27,21 @@ internal struct ContactAccessPicker: View {
   // MARK: - Statics
 
   private static var presentedHostingController: UIHostingController<ContactAccessPicker>?
-  private static var presentedPickerPromise: Promise?
+  private static var presentedCompletion: (([String]) -> Void)?
 
-  internal static func present(inViewController viewController: UIViewController, promise: Promise) {
+  internal static func present(
+    inViewController viewController: UIViewController,
+    completion: @escaping ([String]) -> Void
+  ) throws {
     if presentedHostingController != nil {
-      return promise.reject(AccessPickerAlreadyPresentedException())
+      throw AccessPickerAlreadyPresentedException()
     }
+    presentedCompletion = completion
     // There is no equivalent for the contact access picker in UIKit,
     // so we mount a dedicated SwiftUI view wherever to then present the picker.
     // The completion handler is called when the picker is dismissed by either canceling or saving the selection.
     let accessPicker = ContactAccessPicker { contactIds in
-      presentedPickerPromise?.resolve(contactIds)
+      presentedCompletion?(contactIds)
 
       // SwiftUI doesn't guarantee that the completion is called on the main thread.
       DispatchQueue.main.async {
@@ -46,7 +49,7 @@ internal struct ContactAccessPicker: View {
         presentedHostingController?.view.removeFromSuperview()
         presentedHostingController?.removeFromParent()
         presentedHostingController = nil
-        presentedPickerPromise = nil
+        presentedCompletion = nil
       }
     }
     let hostingController = UIHostingController(rootView: accessPicker)
@@ -56,6 +59,5 @@ internal struct ContactAccessPicker: View {
     viewController.view.addSubview(hostingController.view)
     hostingController.didMove(toParent: viewController)
     presentedHostingController = hostingController
-    presentedPickerPromise = promise
   }
 }

@@ -138,7 +138,10 @@ class FormDelegate: OnContactPickingResultHandler {
     guard let currentViewController = appContext?.utilities?.currentViewController() else {
       throw MissingCurrentViewControllerException()
     }
-    ContactAccessPicker.present(inViewController: currentViewController, promise: promise)
+    try ContactAccessPicker.present(inViewController: currentViewController) { [weak self] contactIds in
+      guard let self else { return }
+      promise.resolve(contactIds.map { self.contactFactory.create(id: $0) })
+    }
   }
 
   internal func didPickContact(contact: CNContact) throws {
@@ -151,7 +154,7 @@ class FormDelegate: OnContactPickingResultHandler {
   }
 
   internal func didCancelPickingContact() {
-    contactPickingPromise?.resolve()
+    contactPickingPromise?.resolve(NSNull())
     contactPickingPromise = nil
   }
 }

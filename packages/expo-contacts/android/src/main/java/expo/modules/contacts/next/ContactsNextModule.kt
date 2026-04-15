@@ -363,13 +363,14 @@ class ContactsNextModule : Module() {
         Contact.hasAny(contactRepository)
       }
 
-      StaticAsyncFunction("requestPermissionsAsync") { promise: Promise ->
-        permissionsDelegate.requestPermissions(promise)
-      }
+    }
 
-      StaticAsyncFunction("getPermissions") { promise: Promise ->
-        permissionsDelegate.getPermissions(promise)
-      }
+    AsyncFunction("getPermissionsAsync") { promise: Promise ->
+      permissionsDelegate.getPermissions(promise)
+    }
+
+    AsyncFunction("requestPermissionsAsync") { promise: Promise ->
+      permissionsDelegate.requestPermissions(promise)
     }
 
     Events(ContactsObserverDelegate.ON_CONTACTS_CHANGE_EVENT_NAME)
