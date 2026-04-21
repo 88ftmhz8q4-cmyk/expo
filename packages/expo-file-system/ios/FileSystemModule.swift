@@ -348,6 +348,20 @@ public final class FileSystemModule: Module {
         return try? directory.size
       }
     }
+
+    Class(FileSystemWatcher.self) {
+      Constructor { (path: URL, options: WatchOptions?) in
+        try FileSystemWatcher(path: path, options: options)
+      }
+
+      Function("start") { watcher in
+        watcher.start()
+      }
+
+      Function("stop") { watcher in
+        watcher.stop()
+      }
+    }
   }
 
   private func getAppleSharedContainers() -> [String: String] {
@@ -363,4 +377,3 @@ public final class FileSystemModule: Module {
     return result
   }
 }
-

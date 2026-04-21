@@ -121,6 +121,8 @@ class FileSystemModule : Module() {
         FileSystemFile(uri)
       }
 
+      OnStartObserving {  }
+
       Function("delete") { file: FileSystemFile ->
         file.delete()
       }
@@ -342,6 +344,22 @@ class FileSystemModule : Module() {
       // this function is internal and will be removed in the future (when returning arrays of shared objects is supported)
       Function("listAsRecords") { directory: FileSystemDirectory ->
         directory.listAsRecords()
+      }
+    }
+
+    Class(FileSystemWatcher::class) {
+      Events("change")
+
+      Constructor { uri: Uri, options: WatchOptions? ->
+        FileSystemWatcher(appContext, uri, options)
+      }
+
+      Function("start") { watcher: FileSystemWatcher ->
+        watcher.start()
+      }
+
+      Function("stop") { watcher: FileSystemWatcher ->
+        watcher.stop()
       }
     }
   }

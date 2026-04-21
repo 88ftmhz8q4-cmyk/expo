@@ -66,3 +66,15 @@ internal class UnableToMoveException(reason: String) :
   CodedException(
     "Unable to move file or directory: $reason"
   )
+
+internal class WatcherSetupException(path: String) :
+  CodedException("Cannot start watching path '$path'")
+
+internal class WatcherPermissionException(path: String) :
+  CodedException("No permission to watch path '$path'")
+
+internal class WatcherPathNotFoundException(path: String) :
+  CodedException("Path does not exist: '$path'")
+
+internal class WatcherUnsupportedPathException(path: String) :
+  CodedException("Cannot watch path '$path'. Only local file:// paths are supported.")
