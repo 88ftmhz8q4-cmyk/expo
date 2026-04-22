@@ -1,3 +1,8 @@
+import { Platform } from 'expo-modules-core';
+
+import { DEFAULT_DEBOUNCE_MS, Directory, File } from '../..';
+import { FileSystemWatcher } from '../FileSystemWatcher';
+
 jest.mock('../ExpoFileSystem', () => {
   const mock = require('../../mocks/FileSystem');
 
@@ -8,10 +13,6 @@ jest.mock('../ExpoFileSystem', () => {
     },
   };
 });
-
-import { Platform } from 'expo-modules-core';
-import { DEFAULT_DEBOUNCE_MS, Directory, File } from '../..';
-import { FileSystemWatcher } from '../FileSystemWatcher';
 
 const isNativePlatform = Platform.OS === 'android' || Platform.OS === 'ios';
 const describeNative = isNativePlatform ? describe : describe.skip;
@@ -68,8 +69,11 @@ describeNative('FileSystemWatcher', () => {
     }));
 
     const callback = jest.fn();
-    new FileSystemWatcher('file:///project', callback, { events: ['renamed'] }, (uri, isDirectory) =>
-      isDirectory ? new Directory(uri) : new File(uri)
+    const _watcher = new FileSystemWatcher(
+      'file:///project',
+      callback,
+      { events: ['renamed'] },
+      (uri, isDirectory) => (isDirectory ? new Directory(uri) : new File(uri))
     );
 
     listener?.({
@@ -150,9 +154,15 @@ describeNative('FileSystemWatcher', () => {
       stop,
     }));
 
-    new FileSystemWatcher('file:///project/file.txt', callback, { events: ['modified'] }, (uri) => ({
-      uri,
-    }) as any);
+    const _watcher = new FileSystemWatcher(
+      'file:///project/file.txt',
+      callback,
+      { events: ['modified'] },
+      (uri) =>
+        ({
+          uri,
+        }) as any
+    );
 
     listener?.({
       type: 'deleted',

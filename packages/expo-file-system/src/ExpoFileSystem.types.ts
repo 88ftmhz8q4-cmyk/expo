@@ -225,7 +225,10 @@ export declare class Directory {
    *
    * On Android, FileObserver provides granular child-level events.
    */
-  watch(callback: (event: WatchEvent<File | Directory>) => void, options?: WatchOptions): WatchSubscription;
+  watch(
+    callback: (event: WatchEvent<File | Directory>) => void,
+    options?: WatchOptions
+  ): WatchSubscription;
 
   /**
    * Copies a directory.
