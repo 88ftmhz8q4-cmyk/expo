@@ -5,6 +5,7 @@ import androidx.core.content.edit
 
 private const val PREFS_NAME = "dev.expo.observe"
 private const val KEY_DISPATCHING_ENABLED = "dispatchingEnabled"
+private const val KEY_DISPATCH_IN_DEBUG = "dispatchInDebug"
 
 object ObservePreferences {
   fun getDispatchingEnabled(context: Context): Boolean {
@@ -17,6 +18,18 @@ object ObservePreferences {
     enabled: Boolean?
   ) {
     setNullableBoolean(context, KEY_DISPATCHING_ENABLED, enabled)
+  }
+
+  fun getDispatchInDebug(context: Context): Boolean {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    return prefs.getBoolean(KEY_DISPATCH_IN_DEBUG, false)
+  }
+
+  fun setDispatchInDebug(
+    context: Context,
+    enabled: Boolean?
+  ) {
+    setNullableBoolean(context, KEY_DISPATCH_IN_DEBUG, enabled)
   }
 
   private fun setNullableBoolean(

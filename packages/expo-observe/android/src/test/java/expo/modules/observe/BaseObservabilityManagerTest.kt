@@ -39,6 +39,7 @@ class BaseObservabilityManagerTest {
     // Default to enabled so existing tests aren't short-circuited
     mockkObject(ObservePreferences)
     every { ObservePreferences.getDispatchingEnabled(any()) } returns true
+    every { ObservePreferences.getDispatchInDebug(any()) } returns false
   }
 
   @After
@@ -46,12 +47,13 @@ class BaseObservabilityManagerTest {
     unmockkAll()
   }
 
-  // region enableInDebug tests
+  // region dispatchInDebug tests
 
   @Test
-  fun `when enableInDebug is false, development sessions are skipped`() =
+  fun `when dispatchInDebug is false, development sessions are skipped`() =
     runTest {
       // Arrange
+      every { ObservePreferences.getDispatchInDebug(any()) } returns false
       val devMetric = createMetric("metric1", metricId = "dev-metric-id")
       val prodMetric = createMetric("metric2", metricId = "prod-metric-id")
       val devSession = createSessionWithMetrics(
@@ -74,7 +76,7 @@ class BaseObservabilityManagerTest {
         removedIds.addAll(firstArg<List<String>>())
       }
 
-      val manager = createManager(enableInDebug = false)
+      val manager = createManager()
 
       // Act
       manager.dispatchUnsentMetrics()
@@ -95,9 +97,10 @@ class BaseObservabilityManagerTest {
     }
 
   @Test
-  fun `when enableInDebug is true, development sessions are dispatched`() =
+  fun `when dispatchInDebug is true, development sessions are dispatched`() =
     runTest {
       // Arrange
+      every { ObservePreferences.getDispatchInDebug(any()) } returns true
       val devMetric = createMetric("metric1", metricId = "dev-metric-id")
       val prodMetric = createMetric("metric2", metricId = "prod-metric-id")
       val devSession = createSessionWithMetrics(
@@ -120,7 +123,7 @@ class BaseObservabilityManagerTest {
         removedIds.addAll(firstArg<List<String>>())
       }
 
-      val manager = createManager(enableInDebug = true)
+      val manager = createManager()
 
       // Act
       manager.dispatchUnsentMetrics()
@@ -141,9 +144,10 @@ class BaseObservabilityManagerTest {
     }
 
   @Test
-  fun `when enableInDebug is false and all sessions are development, nothing is dispatched`() =
+  fun `when dispatchInDebug is false and all sessions are development, nothing is dispatched`() =
     runTest {
       // Arrange
+      every { ObservePreferences.getDispatchInDebug(any()) } returns false
       val devMetric1 = createMetric("metric1", metricId = "dev-metric-1")
       val devMetric2 = createMetric("metric2", metricId = "dev-metric-2")
       val devSession1 = createSessionWithMetrics(
@@ -165,7 +169,7 @@ class BaseObservabilityManagerTest {
         removedIds.addAll(firstArg<List<String>>())
       }
 
-      val manager = createManager(enableInDebug = false)
+      val manager = createManager()
 
       // Act
       manager.dispatchUnsentMetrics()
@@ -180,9 +184,10 @@ class BaseObservabilityManagerTest {
     }
 
   @Test
-  fun `when enableInDebug is false, preview environment sessions are dispatched`() =
+  fun `when dispatchInDebug is false, preview environment sessions are dispatched`() =
     runTest {
       // Arrange
+      every { ObservePreferences.getDispatchInDebug(any()) } returns false
       val previewMetric = createMetric("metric1", metricId = "preview-metric-id")
       val previewSession = createSessionWithMetrics(
         sessionId = "preview-session",
@@ -199,7 +204,7 @@ class BaseObservabilityManagerTest {
         removedIds.addAll(firstArg<List<String>>())
       }
 
-      val manager = createManager(enableInDebug = false)
+      val manager = createManager()
 
       // Act
       manager.dispatchUnsentMetrics()
@@ -216,6 +221,68 @@ class BaseObservabilityManagerTest {
       // Assert - preview metric ID is removed from pending
       assertEquals(1, removedIds.size)
       assertTrue("Preview metric should be removed from pending", removedIds.contains("preview-metric-id"))
+    }
+
+  @Test
+  fun `when dispatchInDebug is false and isDebugBuild is true, all pending metrics are marked sent and nothing is dispatched`() =
+    runTest {
+      // Arrange — DEBUG build short-circuits the entire batch via the combined shouldDispatch gate.
+      every { ObservePreferences.getDispatchInDebug(any()) } returns false
+      coEvery { mockPendingMetricsManager.getAllPendingMetricIds() } returns listOf("id1", "id2")
+
+      val removedIds = mutableListOf<String>()
+      coEvery { mockPendingMetricsManager.removePendingMetrics(any()) } answers {
+        removedIds.addAll(firstArg<List<String>>())
+      }
+
+      val manager = createManager(isDebugBuild = true)
+
+      // Act
+      manager.dispatchUnsentMetrics()
+
+      // Assert — short-circuit: no session lookup, no dispatch, single removePendingMetrics call.
+      coVerify(exactly = 0) { mockEventDispatcher.dispatch(any()) }
+      coVerify(exactly = 0) { mockSessionManager.getSessionsWithMetrics(any()) }
+      coVerify(exactly = 1) { mockPendingMetricsManager.removePendingMetrics(listOf("id1", "id2")) }
+      assertEquals(2, removedIds.size)
+    }
+
+  @Test
+  fun `when dispatchInDebug is true and isDebugBuild is true, metrics are dispatched`() =
+    runTest {
+      // Arrange — opt-in to debug dispatch lifts the global gate.
+      every { ObservePreferences.getDispatchInDebug(any()) } returns true
+      val prodMetric = createMetric("metric1", metricId = "prod-metric-id")
+      val prodSession = createSessionWithMetrics(
+        sessionId = "prod-session",
+        environment = "production",
+        metrics = listOf(prodMetric)
+      )
+
+      coEvery { mockPendingMetricsManager.getAllPendingMetricIds() } returns listOf("prod-metric-id")
+      coEvery { mockSessionManager.getSessionsWithMetrics(any()) } returns listOf(prodSession)
+      coEvery { mockEventDispatcher.dispatch(any()) } returns true
+
+      val removedIds = mutableListOf<String>()
+      coEvery { mockPendingMetricsManager.removePendingMetrics(any()) } answers {
+        removedIds.addAll(firstArg<List<String>>())
+      }
+
+      val manager = createManager(isDebugBuild = true)
+
+      // Act
+      manager.dispatchUnsentMetrics()
+
+      // Assert
+      coVerify {
+        mockEventDispatcher.dispatch(
+          match { events ->
+            events.size == 1 && events[0].metadata.environment == "production"
+          }
+        )
+      }
+      assertEquals(1, removedIds.size)
+      assertTrue(removedIds.contains("prod-metric-id"))
     }
 
   // endregion
@@ -252,15 +319,16 @@ class BaseObservabilityManagerTest {
     }
 
   @Test
-  fun `when enabled is false, enableInDebug has no effect`() =
+  fun `when dispatchingEnabled is false, dispatchInDebug has no effect`() =
     runTest {
-      // Arrange — enabled=false takes precedence over enableInDebug=true
+      // Arrange — dispatchingEnabled=false takes precedence over dispatchInDebug=true
       every { ObservePreferences.getDispatchingEnabled(any()) } returns false
+      every { ObservePreferences.getDispatchInDebug(any()) } returns true
       coEvery { mockPendingMetricsManager.getAllPendingMetricIds() } returns listOf("id1")
 
       coEvery { mockPendingMetricsManager.removePendingMetrics(any()) } just runs
 
-      val manager = createManager(enableInDebug = true)
+      val manager = createManager()
 
       // Act
       manager.dispatchUnsentMetrics()
@@ -682,14 +750,14 @@ class BaseObservabilityManagerTest {
 
   // region Helper methods
 
-  private fun createManager(enableInDebug: Boolean = false): BaseObservabilityManager {
+  private fun createManager(isDebugBuild: Boolean = false): BaseObservabilityManager {
     val manager = BaseObservabilityManager(
       context = mockContext,
       sessionManager = mockSessionManager,
       pendingMetricsManager = mockPendingMetricsManager,
       projectId = testProjectId,
       baseUrl = testBaseUrl,
-      enableInDebug = enableInDebug
+      isDebugBuild = isDebugBuild
     )
     // Replace the internal EventDispatcher with our mock
     val field = BaseObservabilityManager::class.java.getDeclaredField("eventDispatcher")

@@ -5,9 +5,15 @@ import ExpoAppMetrics
 internal struct ObservabilityManager {
   private static let easClientId = EASClientID.uuid().uuidString
   private static var endpointUrl: URL? = nil
-  private static var enableInDebug: Bool = false
   private static var projectId: String? = nil
   private static var useOpenTelemetry = false
+
+  // Determined at compile time of the host app's binary.
+  #if DEBUG
+  private static let isDebugBuild: Bool = true
+  #else
+  private static let isDebugBuild: Bool = false
+  #endif
 
   /**
    Returns entries from AppMetrics storage that have not been dispatched yet.
@@ -38,9 +44,10 @@ internal struct ObservabilityManager {
       return
     }
     do {
-      // Filter entries based on environment if enableInDebug is false
+      let dispatchInDebug = ObserveUserDefaults.dispatchInDebug ?? false
+      // Per-entry: when dispatchInDebug is false, drop development sessions.
       let entriesToDispatch =
-        enableInDebug
+        dispatchInDebug
         ? entries
         : entries.filter { $0.environment != "development" }
 
@@ -51,7 +58,8 @@ internal struct ObservabilityManager {
       }
 
       let dispatchingEnabled = ObserveUserDefaults.dispatchingEnabled ?? true
-      if events.isEmpty || !dispatchingEnabled {
+      let shouldDispatch = dispatchingEnabled && (!isDebugBuild || dispatchInDebug)
+      if events.isEmpty || !shouldDispatch {
         // All entries were filtered out or dispatching is disabled — mark as dispatched
         ObserveUserDefaults.lastDispatchedEntryId = entries.first?.id ?? -1
         return
@@ -100,13 +108,6 @@ internal struct ObservabilityManager {
     }
     AppMetricsActor.isolated {
       self.endpointUrl = url.appendingPathComponent(useOpenTelemetry ?  "\(projectId)/v1/metrics" : projectId)
-    }
-  }
-
-  internal nonisolated static func setEnableInDebug(_ enabled: Bool?) {
-    let enabled = enabled ?? false
-    AppMetricsActor.isolated {
-      self.enableInDebug = enabled
     }
   }
 

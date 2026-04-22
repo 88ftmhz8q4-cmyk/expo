@@ -19,6 +19,7 @@ internal final class ObserveUserDefaults: UserDefaults {
     case lastDispatchedEntryId
     case lastDispatchDate
     case dispatchingEnabled
+    case dispatchInDebug
   }
 
   private init() {
@@ -62,6 +63,14 @@ internal final class ObserveUserDefaults: UserDefaults {
   static var dispatchingEnabled: Bool? {
     get { getNullableBool(Keys.dispatchingEnabled) }
     set { setNullable(Keys.dispatchingEnabled, newValue) }
+  }
+
+  /**
+   Whether to dispatch metrics collected in debug/development contexts. `nil` when unset; read sites default to `false`.
+   */
+  static var dispatchInDebug: Bool? {
+    get { getNullableBool(Keys.dispatchInDebug) }
+    set { setNullable(Keys.dispatchInDebug, newValue) }
   }
 
   // UserDefaults returns `false` for unset bools, so we check `object(forKey:)` first

@@ -8,9 +8,24 @@ export type Config = {
     /**
      * Whether to enable dispatching events to the server
      *
-     * @default true for production, false for development
+     * When `false`, any pending metrics
+     * are marked as sent without being dispatched and no further metrics are dispatched
+     * until this is set back to `true`.
+     *
+     * @default true
      */
     dispatchingEnabled?: boolean;
+    /**
+     * Whether to dispatch metrics that were collected in debug/development contexts
+     *
+     * When `false` those metrics are marked as sent without being dispatched
+     * When `true`, debug/dev metrics are dispatched alongside production metrics.
+     *
+     * When `dispatchingEnabled` is set to `false`, then no metrics will be dispatched.
+     *
+     * @default false
+     */
+    dispatchInDebug?: boolean;
 };
 export interface ExpoObserveModuleType {
     dispatchEvents(): Promise<void>;

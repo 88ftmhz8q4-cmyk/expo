@@ -12,7 +12,6 @@ class ObservabilityManager(
   val sessionManager: SessionManager
 ) {
   private val baseManager: BaseObservabilityManager
-  private val enableInDebug: Boolean
   private val useOpenTelemetry: Boolean
 
   // TODO: Can this information change during expo module lifecycle?
@@ -27,7 +26,6 @@ class ObservabilityManager(
       "Project ID is required to send observability metrics. Make sure you have configured it correctly in app.json."
     }
     val baseUrl = manifest.baseUrl ?: OBSERVE_DEFAULT_BASE_URL
-    enableInDebug = manifest.enableInDebug
     useOpenTelemetry = manifest.useOpenTelemetry
 
     val pendingMetricsManager = PendingMetricsManager(context)
@@ -38,7 +36,7 @@ class ObservabilityManager(
       pendingMetricsManager = pendingMetricsManager,
       projectId = projectId,
       baseUrl = baseUrl,
-      enableInDebug = enableInDebug,
+      isDebugBuild = BuildConfig.DEBUG,
       useOpenTelemetry = useOpenTelemetry
     )
 
@@ -56,7 +54,6 @@ class ObservabilityManager(
       context = context,
       projectId = baseManager.projectId,
       baseUrl = baseManager.baseUrl,
-      enableInDebug = enableInDebug,
       useOpenTelemetry = useOpenTelemetry
     )
   }
@@ -68,7 +65,7 @@ class BaseObservabilityManager(
   private val pendingMetricsManager: PendingMetricsManager,
   val projectId: String,
   val baseUrl: String,
-  private val enableInDebug: Boolean = false,
+  private val isDebugBuild: Boolean = false,
   private val useOpenTelemetry: Boolean = false
 ) {
   private val eventDispatcher = EventDispatcher(
@@ -84,8 +81,12 @@ class BaseObservabilityManager(
       return
     }
 
-    // When disabled, mark pending metrics as sent without dispatching
-    if (!ObservePreferences.getDispatchingEnabled(context)) {
+    val dispatchingEnabled = ObservePreferences.getDispatchingEnabled(context)
+    val dispatchInDebug = ObservePreferences.getDispatchInDebug(context)
+    // Combined dispatch-level gate: when any batch-wide condition says no, mark all pending
+    // metrics as sent and bail. Per-metric filtering (for dev environments) happens below.
+    val shouldDispatch = dispatchingEnabled && (!isDebugBuild || dispatchInDebug)
+    if (!shouldDispatch) {
       pendingMetricsManager.removePendingMetrics(pendingIds)
       return
     }
@@ -103,7 +104,7 @@ class BaseObservabilityManager(
       return
     }
 
-    val (toDispatch, toSkip) = if (enableInDebug) {
+    val (toDispatch, toSkip) = if (dispatchInDebug) {
       Pair(sessionsWithPendingMetrics, emptyList())
     } else {
       sessionsWithPendingMetrics.partition { it.session.environment != "development" }
