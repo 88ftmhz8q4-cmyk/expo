@@ -1,6 +1,7 @@
 package expo.modules.observe
 
 import android.content.Context
+import expo.modules.easclient.EASClientID
 import expo.modules.observe.storage.PendingMetricsManager
 import expo.modules.appmetrics.storage.SessionManager
 import expo.modules.interfaces.constants.ConstantsInterface
@@ -69,7 +70,10 @@ class BaseObservabilityManager(
   val projectId: String,
   val baseUrl: String,
   private val enableInDebug: Boolean = false,
-  private val useOpenTelemetry: Boolean = false
+  private val useOpenTelemetry: Boolean = false,
+  private val deterministicUniformValueProvider: () -> Double = {
+    EASClientID.deterministicUniformValue(EASClientID(context).uuid)
+  }
 ) {
   private val eventDispatcher = EventDispatcher(
     context = context,
@@ -84,8 +88,8 @@ class BaseObservabilityManager(
       return
     }
 
-    // When disabled, mark pending metrics as sent without dispatching
-    if (!ObservePreferences.getDispatchingEnabled(context)) {
+    val shouldDispatch = ObservePreferences.getDispatchingEnabled(context) && isInSample()
+    if (!shouldDispatch) {
       pendingMetricsManager.removePendingMetrics(pendingIds)
       return
     }
@@ -129,6 +133,12 @@ class BaseObservabilityManager(
       val dispatchedMetricIds = toDispatch.flatMap { it.metrics }.map { it.metricId }
       pendingMetricsManager.removePendingMetrics(dispatchedMetricIds)
     }
+  }
+
+  private fun isInSample(): Boolean {
+    val rate = ObservePreferences.getSampleRate(context) ?: return true
+    val clamped = rate.coerceIn(0.0, 1.0)
+    return deterministicUniformValueProvider() < clamped
   }
 
   suspend fun cleanup() {

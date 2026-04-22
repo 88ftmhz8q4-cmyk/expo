@@ -3,7 +3,7 @@
 import ExpoAppMetrics
 
 /**
- Class that manages a custom `UserDefaults` database with `"dev.expo.eas.observe"` suite name.
+ Class that manages a custom `UserDefaults` database with `"dev.expo.observe"` suite name.
  */
 @AppMetricsActor
 internal final class ObserveUserDefaults: UserDefaults {
@@ -19,6 +19,7 @@ internal final class ObserveUserDefaults: UserDefaults {
     case lastDispatchedEntryId
     case lastDispatchDate
     case dispatchingEnabled
+    case sampleRate
   }
 
   private init() {
@@ -64,11 +65,25 @@ internal final class ObserveUserDefaults: UserDefaults {
     set { setNullable(Keys.dispatchingEnabled, newValue) }
   }
 
+  /**
+   Sampling rate for dispatching metrics, in `[0, 1]`. `nil` when unset (no sampling applied).
+   Stored explicitly so that `0.0` is distinguishable from "absent".
+   */
+  static var sampleRate: Double? {
+    get { getNullableDouble(Keys.sampleRate) }
+    set { setNullable(Keys.sampleRate, newValue) }
+  }
+
   // UserDefaults returns `false` for unset bools, so we check `object(forKey:)` first
   // to distinguish "absent" from an explicit stored value.
   private static func getNullableBool(_ key: Keys) -> Bool? {
     guard defaults.object(forKey: key.rawValue) != nil else { return nil }
     return defaults.bool(forKey: key.rawValue)
+  }
+
+  private static func getNullableDouble(_ key: Keys) -> Double? {
+    guard defaults.object(forKey: key.rawValue) != nil else { return nil }
+    return defaults.double(forKey: key.rawValue)
   }
 
   private static func setNullable(_ key: Keys, _ value: Any?) {

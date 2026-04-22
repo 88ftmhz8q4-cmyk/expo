@@ -51,8 +51,10 @@ internal struct ObservabilityManager {
       }
 
       let dispatchingEnabled = ObserveUserDefaults.dispatchingEnabled ?? true
-      if events.isEmpty || !dispatchingEnabled {
-        // All entries were filtered out or dispatching is disabled — mark as dispatched
+      let shouldDispatch = dispatchingEnabled && isInSample()
+      if events.isEmpty || !shouldDispatch {
+        // All entries were filtered out, dispatching is disabled, or this device is out-of-sample —
+        // mark as dispatched so they don't accumulate.
         ObserveUserDefaults.lastDispatchedEntryId = entries.first?.id ?? -1
         return
       }
@@ -115,5 +117,13 @@ internal struct ObservabilityManager {
     AppMetricsActor.isolated {
       self.useOpenTelemetry = enabled
     }
+  }
+
+  private static func isInSample() -> Bool {
+    guard let rate = ObserveUserDefaults.sampleRate else {
+      return true
+    }
+    let clamped = min(max(rate, 0.0), 1.0)
+    return EASClientID.deterministicUniformValue(EASClientID.uuid()) < clamped
   }
 }

@@ -19,14 +19,14 @@ class ObservePreferencesTest {
     context = ApplicationProvider.getApplicationContext()
     // Clear preferences before each test
     context
-      .getSharedPreferences("dev.expo.eas.observe", Context.MODE_PRIVATE)
+      .getSharedPreferences("dev.expo.observe", Context.MODE_PRIVATE)
       .edit()
       .clear()
       .commit()
   }
 
   @Test
-  fun `getEnabled returns true by default`() {
+  fun `getDispatchingEnabled returns true by default`() {
     assertTrue(ObservePreferences.getDispatchingEnabled(context))
   }
 
@@ -50,5 +50,30 @@ class ObservePreferencesTest {
     assertFalse(ObservePreferences.getDispatchingEnabled(context))
     ObservePreferences.setDispatchingEnabled(context, null)
     assertTrue(ObservePreferences.getDispatchingEnabled(context))
+  }
+
+  @Test
+  fun `getSampleRate returns null by default`() {
+    assertNull(ObservePreferences.getSampleRate(context))
+  }
+
+  @Test
+  fun `setSampleRate persists value`() {
+    ObservePreferences.setSampleRate(context, 0.25)
+    assertEquals(0.25, ObservePreferences.getSampleRate(context)!!, 0.0001)
+  }
+
+  @Test
+  fun `setSampleRate 0_0 is distinct from null`() {
+    ObservePreferences.setSampleRate(context, 0.0)
+    assertEquals(0.0, ObservePreferences.getSampleRate(context)!!, 0.0001)
+  }
+
+  @Test
+  fun `setSampleRate null clears previously set value`() {
+    ObservePreferences.setSampleRate(context, 0.5)
+    assertEquals(0.5, ObservePreferences.getSampleRate(context)!!, 0.0001)
+    ObservePreferences.setSampleRate(context, null)
+    assertNull(ObservePreferences.getSampleRate(context))
   }
 }
