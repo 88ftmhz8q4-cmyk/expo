@@ -44,4 +44,11 @@ class ObservePreferencesTest {
     assertTrue(ObservePreferences.getDispatchingEnabled(context))
   }
 
+  @Test
+  fun `setDispatchingEnabled null clears previously set false`() {
+    ObservePreferences.setDispatchingEnabled(context, false)
+    assertFalse(ObservePreferences.getDispatchingEnabled(context))
+    ObservePreferences.setDispatchingEnabled(context, null)
+    assertTrue(ObservePreferences.getDispatchingEnabled(context))
+  }
 }

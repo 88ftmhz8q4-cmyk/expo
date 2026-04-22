@@ -14,9 +14,23 @@ object ObservePreferences {
 
   fun setDispatchingEnabled(
     context: Context,
-    enabled: Boolean
+    enabled: Boolean?
+  ) {
+    setNullableBoolean(context, KEY_DISPATCHING_ENABLED, enabled)
+  }
+
+  private fun setNullableBoolean(
+    context: Context,
+    key: String,
+    value: Boolean?
   ) {
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    prefs.edit(commit = true) { putBoolean(KEY_DISPATCHING_ENABLED, enabled) }
+    prefs.edit(commit = true) {
+      if (value == null) {
+        remove(key)
+      } else {
+        putBoolean(key, value)
+      }
+    }
   }
 }

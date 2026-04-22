@@ -57,19 +57,25 @@ internal final class ObserveUserDefaults: UserDefaults {
   }
 
   /**
-   Whether observability dispatching is enabled. Defaults to `true`.
+   Whether observability dispatching is enabled. `nil` when unset; read sites default to `true`.
    */
-  static var dispatchingEnabled: Bool {
-    get {
-      // UserDefaults returns false for unset bools, so we check for existence
-      if defaults.object(forKey: Keys.dispatchingEnabled.rawValue) == nil {
-        return true
-      }
-      return defaults.bool(forKey: Keys.dispatchingEnabled.rawValue)
-    }
-    set {
-      defaults.set(newValue, forKey: Keys.dispatchingEnabled.rawValue)
-    }
+  static var dispatchingEnabled: Bool? {
+    get { getNullableBool(Keys.dispatchingEnabled) }
+    set { setNullable(Keys.dispatchingEnabled, newValue) }
   }
 
+  // UserDefaults returns `false` for unset bools, so we check `object(forKey:)` first
+  // to distinguish "absent" from an explicit stored value.
+  private static func getNullableBool(_ key: Keys) -> Bool? {
+    guard defaults.object(forKey: key.rawValue) != nil else { return nil }
+    return defaults.bool(forKey: key.rawValue)
+  }
+
+  private static func setNullable(_ key: Keys, _ value: Any?) {
+    if let value {
+      defaults.set(value, forKey: key.rawValue)
+    } else {
+      defaults.removeObject(forKey: key.rawValue)
+    }
+  }
 }
