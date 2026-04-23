@@ -89,6 +89,7 @@ export class File extends ExpoFileSystem.FileSystemFile implements Blob {
     destination: Directory | File,
     options?: DownloadOptions
   ) => Promise<File>;
+  declare upload: (url: string, options?: UploadOptions) => Promise<UploadResult>;
 
   /**
    * Creates an instance of a file. It can be created for any path, and does not need to exist on the filesystem during creation.
@@ -628,6 +629,10 @@ export class DownloadTask extends ExpoFileSystem.FileSystemDownloadTask {
 // Add factory methods to File
 File.prototype.createUploadTask = function (url: string, options?: UploadOptions): UploadTask {
   return new UploadTask(this, url, options);
+};
+
+File.prototype.upload = function (url: string, options?: UploadOptions): Promise<UploadResult> {
+  return new UploadTask(this, url, options).uploadAsync();
 };
 
 File.createDownloadTask = function (

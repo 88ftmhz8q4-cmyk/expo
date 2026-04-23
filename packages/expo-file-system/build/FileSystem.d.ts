@@ -41,6 +41,7 @@ export declare class Paths extends PathUtilities {
  */
 export declare class File extends ExpoFileSystem.FileSystemFile implements Blob {
     static downloadFileAsync: (url: string, destination: Directory | File, options?: DownloadOptions) => Promise<File>;
+    upload: (url: string, options?: UploadOptions) => Promise<UploadResult>;
     /**
      * Creates an instance of a file. It can be created for any path, and does not need to exist on the filesystem during creation.
      *
