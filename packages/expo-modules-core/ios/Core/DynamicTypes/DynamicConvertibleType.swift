@@ -34,29 +34,15 @@ internal struct DynamicConvertibleType: AnyDynamicType {
   }
 
   func castToJS<ValueType>(_ value: ValueType, appContext: AppContext) throws -> JavaScriptValue {
-    if let value = value as? any Record {
-      return try JavaScriptActor.assumeIsolated {
-        try value.toJSValue(appContext: appContext)
-      }
-    }
-    if let value = value as? any RecordJavaScriptValueConvertible {
-      return try JavaScriptActor.assumeIsolated {
-        try value.toJSValue(appContext: appContext)
-      }
+    if let directJSValue = try directJSValueIfPossible(value, appContext: appContext) {
+      return directJSValue
     }
     return try Conversions.anyToJavaScriptValue(value, runtime: appContext.runtime)
   }
 
   func convertToJS<ValueType>(_ value: ValueType, appContext: AppContext) throws -> JavaScriptValue {
-    if let value = value as? any Record {
-      return try JavaScriptActor.assumeIsolated {
-        try value.toJSValue(appContext: appContext)
-      }
-    }
-    if let value = value as? any RecordJavaScriptValueConvertible {
-      return try JavaScriptActor.assumeIsolated {
-        try value.toJSValue(appContext: appContext)
-      }
+    if let directJSValue = try directJSValueIfPossible(value, appContext: appContext) {
+      return directJSValue
     }
     let result = Conversions.convertFunctionResult(value, appContext: appContext, dynamicType: self)
     return try castToJS(result, appContext: appContext)
@@ -68,5 +54,19 @@ internal struct DynamicConvertibleType: AnyDynamicType {
 
   var description: String {
     String(describing: innerType.self)
+  }
+
+  private func directJSValueIfPossible<ValueType>(_ value: ValueType, appContext: AppContext) throws -> JavaScriptValue? {
+    if let value = value as? any Record {
+      return try JavaScriptActor.assumeIsolated {
+        try value.toJSValue(appContext: appContext)
+      }
+    }
+    if let value = value as? any RecordJavaScriptValueConvertible {
+      return try JavaScriptActor.assumeIsolated {
+        try value.toJSValue(appContext: appContext)
+      }
+    }
+    return nil
   }
 }
