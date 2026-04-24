@@ -29,7 +29,14 @@ internal struct DynamicDictionaryType: AnyDynamicType {
     if let jsObject = try? jsValue.asObject() {
       var result: [AnyHashable: Any] = [:]
       for key in jsObject.getPropertyNames() {
-        result[key] = try converter.toNative(jsObject.getProperty(key), valueType)
+        let property = jsObject.getProperty(key)
+
+        // Match `JavaScriptValue.getAny()` semantics by treating `undefined`
+        // object values as absent entries during recursive hydration.
+        if property.isUndefined() {
+          continue
+        }
+        result[key] = try converter.toNative(property, valueType)
       }
       return result
     }
