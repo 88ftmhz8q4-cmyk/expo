@@ -1,5 +1,7 @@
 // Copyright 2021-present 650 Industries. All rights reserved.
 
+import ExpoModulesJSI
+
 /**
  A dynamic type that wraps any type conforming to `Convertible` protocol.
  */
@@ -17,8 +19,32 @@ internal struct DynamicConvertibleType: AnyDynamicType {
     return false
   }
 
+  @JavaScriptActor
+  func cast(jsValue: JavaScriptValue, appContext: AppContext) throws -> Any {
+    if let recordType = innerType as? any Record.Type {
+      let record = recordType.init()
+      try record.update(withObject: try jsValue.asObject(), appContext: appContext)
+      return record
+    }
+    return jsValue.getAny()
+  }
+
   func cast<ValueType>(_ value: ValueType, appContext: AppContext) throws -> Any {
     return try innerType.convert(from: value, appContext: appContext)
+  }
+
+  func castToJS<ValueType>(_ value: ValueType, appContext: AppContext) throws -> JavaScriptValue {
+    if let value = value as? any Record {
+      return try JavaScriptActor.assumeIsolated {
+        try value.toJSValue(appContext: appContext)
+      }
+    }
+    if let value = value as? any RecordJavaScriptValueConvertible {
+      return try JavaScriptActor.assumeIsolated {
+        try value.toJSValue(appContext: appContext)
+      }
+    }
+    return try Conversions.anyToJavaScriptValue(value, runtime: appContext.runtime)
   }
 
   func convertResult<ResultType>(_ result: ResultType, appContext: AppContext) throws -> Any {

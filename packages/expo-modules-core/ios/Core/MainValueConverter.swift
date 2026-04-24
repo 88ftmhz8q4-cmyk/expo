@@ -45,6 +45,16 @@ public struct MainValueConverter {
     guard let appContext else {
       throw Exceptions.AppContextLost()
     }
+    if let value = value as? any Record {
+      return try JavaScriptActor.assumeIsolated {
+        try value.toJSValue(appContext: appContext)
+      }
+    }
+    if let value = value as? any RecordJavaScriptValueConvertible {
+      return try JavaScriptActor.assumeIsolated {
+        try value.toJSValue(appContext: appContext)
+      }
+    }
     let result = Conversions.convertFunctionResult(value, appContext: appContext, dynamicType: type)
     return try type.castToJS(result, appContext: appContext)
   }
