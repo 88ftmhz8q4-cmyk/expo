@@ -72,13 +72,17 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "5310c5f2-8ab4-4d5e-8f53-a5c90aa9594a"
+        "projectId": "c45bc082-e840-4375-86f8-9892a76da724"
       }
     },
     "runtimeVersion": "1.0.0",
     "updates": {
-      "url": "https://u.expo.dev/5310c5f2-8ab4-4d5e-8f53-a5c90aa9594a"
+      "useNativeDebug": true,
+      "requestHeaders": {
+        "expo-channel-name": "main"
+      },
+      "url": "https://u.expo.dev/c45bc082-e840-4375-86f8-9892a76da724"
     },
-    "owner": "expo"
+    "owner": "douglowderexpo"
   }
 }
